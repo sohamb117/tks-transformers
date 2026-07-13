@@ -8,7 +8,7 @@ class Transformer(nn.Module):
         super().__init__()
 
         self.decoder = nn.Sequential(
-            nn.Embedding(num_embeddings=50_257, embedding_dim=512),
+            nn.Embedding(num_embeddings=50_257, embedding_dim=512, device='mps'),
             PositionalEncodings(512),      
             MultiHeadedAttention(n_heads=8, d_input=512, d_k=64),     
             nn.LayerNorm(512),
@@ -44,10 +44,10 @@ class Transformer(nn.Module):
 
     def forward(self, X):
         last_token = self.decoder(X)[-1]
-        proj = nn.Linear(512, 50_257)
+        proj = nn.Linear(512, 50_257, device="mps")
         
         output = proj(last_token)
-        output = torch.softmax(output)
+        output = torch.softmax(output, dim=0)
         return output
     
     def tokenize_input(self, in_str):

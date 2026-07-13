@@ -6,12 +6,10 @@ class MultiHeadedAttention(nn.Module):
     def __init__(self, n_heads, d_input, d_k):
         super().__init__()
         self.attention_heads = [AttentionHead(d_input, d_k) for _ in range(n_heads)]
-        self.W_o = nn.Linear(n_heads * d_input, d_input)
+        self.W_o = nn.Linear(n_heads * d_input, d_input, device="mps")
 
     def forward(self, X):
-        outputs = torch.empty(X.size(1), device='mps')
-        for head in self.attention_heads:
-            outputs = torch.vstack(outputs, head(X))
+        outputs = torch.cat([head(X) for head in self.attention_heads], dim=-1)
 
         return self.W_o(outputs) + X #residuals
 
@@ -27,7 +25,7 @@ class AttentionHead(nn.Module):
         Q = self.W_q(X)
         K = self.W_k(X)
         V = self.W_v(X)
-        matrix = torch.matmul(Q, K.T) / torch.sqrt(self.d)
+        matrix = torch.matmul(Q, K.transpose(-2, -1)) / torch.sqrt(torch.tensor(self.d, dtype=torch.float32, device="mps"))
         
         mask = torch.full((X.size(1), X.size(1)), float('-inf'), device='mps')
         mask = torch.triu(mask, diagonal=1)
@@ -44,9 +42,9 @@ class FeedForwardNetwork(nn.Module):
     def __init__(self, d_input):
         super().__init__()
         self.network = nn.Sequential(
-            nn.Linear(d_input, 2048),
+            nn.Linear(d_input, 2048, device="mps"),
             nn.ReLU(),
-            nn.Linear(2048, d_input),
+            nn.Linear(2048, d_input, device="mps"),
         )
 
     def forward(self, X):

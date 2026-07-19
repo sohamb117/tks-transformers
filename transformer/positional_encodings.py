@@ -2,9 +2,10 @@ import torch.nn as nn
 import torch
 
 class PositionalEncodings(nn.Module):
-    def __init__(self, d_in):
+    def __init__(self, d_in, device):
         super().__init__()
         self.d = d_in
+        self.device = device
     
     def forward(self, X:torch.tensor):
         def pe(pos, i):
@@ -13,8 +14,8 @@ class PositionalEncodings(nn.Module):
 
         dim = X.size(1)
 
-        pos = torch.arange(dim, device='mps').unsqueeze(1)
-        i = torch.arange(self.d, device='mps')
+        pos = torch.arange(dim, device=self.device).unsqueeze(1)
+        i = torch.arange(self.d, device=self.device)
 
         table = pe(pos, i)
         return table + X
